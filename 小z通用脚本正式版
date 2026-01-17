@@ -1,0 +1,1243 @@
+-- 小z通用脚本 正式版 (WindUI版本)
+-- 基于小z飞车控制v2.8完整迁移
+-- 所有通知使用图片ID: 84648939157347
+-- 飞行系统：小z飞行脚本 V3
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
+local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+
+-- 初始化WindUI
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+
+WindUI.TransparencyValue = 0.2
+WindUI:SetTheme("Dark")
+
+-- 游戏变量
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- 移动控制变量
+local moveSpeed = 50
+local walkSpeed = 16
+local jumpPower = 50
+
+-- 穿墙模式变量
+local noClipEnabled = false
+
+-- 使用游戏自带通知系统显示欢迎弹窗
+local function showGameNotification()
+    task.wait(2) -- 等待游戏完全加载
+    
+    -- 方法1: 使用Roblox原生通知系统
+    local success = pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "小z通用脚本 正式版",
+            Text = "欢迎使用小z通用脚本正式版\n已成功注入！",
+            Duration = 8,
+            Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+        })
+    end)
+    
+    -- 方法2: 备用方案 - 使用聊天系统通知
+    if not success then
+        task.wait(1)
+        StarterGui:SetCore("ChatMakeSystemMessage", {
+            Text = "[系统] 欢迎使用小z通用脚本正式版！",
+            Color = Color3.fromRGB(0, 170, 255),
+            Font = Enum.Font.GothamBold,
+            TextSize = 18
+        })
+    end
+    
+    -- 方法3: 额外的提示信息
+    task.wait(3)
+    StarterGui:SetCore("SendNotification", {
+        Title = "功能提示",
+        Text = "按右Ctrl键显示/隐藏控制面板\n按N键切换穿墙模式",
+        Duration = 6,
+        Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+    })
+end
+
+-- 显示游戏通知
+task.spawn(showGameNotification)
+
+-- 创建小z飞行脚本
+local function createXzFlightScript()
+    local main = Instance.new("ScreenGui")
+    local Frame = Instance.new("Frame")
+    local up = Instance.new("TextButton")
+    local down = Instance.new("TextButton")
+    local onof = Instance.new("TextButton")
+    local TextLabel = Instance.new("TextLabel")
+    local plus = Instance.new("TextButton")
+    local speed = Instance.new("TextLabel")
+    local mine = Instance.new("TextButton")
+    local closebutton = Instance.new("TextButton")
+    local mini = Instance.new("TextButton")
+    local mini2 = Instance.new("TextButton")
+
+    main.Name = "小z飞行脚本"
+    main.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    main.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    main.ResetOnSpawn = false
+
+    Frame.Parent = main
+    Frame.BackgroundColor3 = Color3.fromRGB(163, 255, 137)
+    Frame.BorderColor3 = Color3.fromRGB(103, 221, 213)
+    Frame.Position = UDim2.new(0.100320168, 0, 0.379746825, 0)
+    Frame.Size = UDim2.new(0, 190, 0, 57)
+
+    up.Name = "up"
+    up.Parent = Frame
+    up.BackgroundColor3 = Color3.fromRGB(79, 255, 152)
+    up.Size = UDim2.new(0, 44, 0, 28)
+    up.Font = Enum.Font.SourceSans
+    up.Text = "上升"
+    up.TextColor3 = Color3.fromRGB(0, 0, 0)
+    up.TextSize = 14.000
+
+    down.Name = "down"
+    down.Parent = Frame
+    down.BackgroundColor3 = Color3.fromRGB(215, 255, 121)
+    down.Position = UDim2.new(0, 0, 0.491228074, 0)
+    down.Size = UDim2.new(0, 44, 0, 28)
+    down.Font = Enum.Font.SourceSans
+    down.Text = "下降"
+    down.TextColor3 = Color3.fromRGB(0, 0, 0)
+    down.TextSize = 14.000
+
+    onof.Name = "onof"
+    onof.Parent = Frame
+    onof.BackgroundColor3 = Color3.fromRGB(255, 249, 74)
+    onof.Position = UDim2.new(0.702823281, 0, 0.491228074, 0)
+    onof.Size = UDim2.new(0, 56, 0, 28)
+    onof.Font = Enum.Font.SourceSans
+    onof.Text = "飞行"
+    onof.TextColor3 = Color3.fromRGB(0, 0, 0)
+    onof.TextSize = 14.000
+
+    TextLabel.Parent = Frame
+    TextLabel.BackgroundColor3 = Color3.fromRGB(242, 60, 255)
+    TextLabel.Position = UDim2.new(0.469327301, 0, 0, 0)
+    TextLabel.Size = UDim2.new(0, 100, 0, 28)
+    TextLabel.Font = Enum.Font.SourceSans
+    TextLabel.Text = "小z飞行脚本 V3"
+    TextLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+    TextLabel.TextScaled = true
+    TextLabel.TextSize = 14.000
+    TextLabel.TextWrapped = true
+
+    plus.Name = "plus"
+    plus.Parent = Frame
+    plus.BackgroundColor3 = Color3.fromRGB(133, 145, 255)
+    plus.Position = UDim2.new(0.231578946, 0, 0, 0)
+    plus.Size = UDim2.new(0, 45, 0, 28)
+    plus.Font = Enum.Font.SourceSans
+    plus.Text = "+"
+    plus.TextColor3 = Color3.fromRGB(0, 0, 0)
+    plus.TextScaled = true
+    plus.TextSize = 14.000
+    plus.TextWrapped = true
+
+    speed.Name = "speed"
+    speed.Parent = Frame
+    speed.BackgroundColor3 = Color3.fromRGB(255, 85, 0)
+    speed.Position = UDim2.new(0.468421042, 0, 0.491228074, 0)
+    speed.Size = UDim2.new(0, 44, 0, 28)
+    speed.Font = Enum.Font.SourceSans
+    speed.Text = "1"
+    speed.TextColor3 = Color3.fromRGB(0, 0, 0)
+    speed.TextScaled = true
+    speed.TextSize = 14.000
+    speed.TextWrapped = true
+
+    mine.Name = "mine"
+    mine.Parent = Frame
+    mine.BackgroundColor3 = Color3.fromRGB(123, 255, 247)
+    mine.Position = UDim2.new(0.231578946, 0, 0.491228074, 0)
+    mine.Size = UDim2.new(0, 45, 0, 29)
+    mine.Font = Enum.Font.SourceSans
+    mine.Text = "-"
+    mine.TextColor3 = Color3.fromRGB(0, 0, 0)
+    mine.TextScaled = true
+    mine.TextSize = 14.000
+    mine.TextWrapped = true
+
+    closebutton.Name = "Close"
+    closebutton.Parent = main.Frame
+    closebutton.BackgroundColor3 = Color3.fromRGB(225, 25, 0)
+    closebutton.Font = "SourceSans"
+    closebutton.Size = UDim2.new(0, 45, 0, 28)
+    closebutton.Text = "X"
+    closebutton.TextSize = 30
+    closebutton.Position =  UDim2.new(0, 0, -1, 27)
+
+    mini.Name = "minimize"
+    mini.Parent = main.Frame
+    mini.BackgroundColor3 = Color3.fromRGB(192, 150, 230)
+    mini.Font = "SourceSans"
+    mini.Size = UDim2.new(0, 45, 0, 28)
+    mini.Text = "T"
+    mini.TextSize = 30
+    mini.Position = UDim2.new(0, 44, -1, 27)
+
+    mini2.Name = "minimize2"
+    mini2.Parent = main.Frame
+    mini2.BackgroundColor3 = Color3.fromRGB(192, 150, 230)
+    mini2.Font = "SourceSans"
+    mini2.Size = UDim2.new(0, 45, 0, 28)
+    mini2.Text = "T"
+    mini2.TextSize = 30
+    mini2.Position = UDim2.new(0, 44, -1, 57)
+    mini2.Visible = false
+
+    local speeds = 1
+
+    local speaker = game:GetService("Players").LocalPlayer
+
+    local chr = game.Players.LocalPlayer.Character
+    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+
+    local nowe = false
+
+    -- 修改这里的弹窗内容
+    game:GetService("StarterGui"):SetCore("SendNotification", { 
+        Title = "小z飞行脚本 V3";
+        Text = "飞行脚本已就绪";  -- 修改为"飞行脚本已就绪"
+        Icon = "rbxthumb://type=Asset&id=84648939157347&w=150&h=150"})  -- 修改图标ID为84648939157347
+    Duration = 5;
+
+    Frame.Active = true
+    Frame.Draggable = true
+
+    -- 飞行功能
+    onof.MouseButton1Down:connect(function()
+        if nowe == true then
+            nowe = false
+            -- 恢复所有状态
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Running,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,true)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,true)
+            speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+        else 
+            nowe = true
+            -- 启用飞行
+            for i = 1, speeds do
+                spawn(function()
+                    local hb = game:GetService("RunService").Heartbeat	
+                    tpwalking = true
+                    local chr = game.Players.LocalPlayer.Character
+                    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                    while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                        if hum.MoveDirection.Magnitude > 0 then
+                            chr:TranslateBy(hum.MoveDirection)
+                        end
+                    end
+                end)
+            end
+            
+            game.Players.LocalPlayer.Character.Animate.Disabled = true
+            local Char = game.Players.LocalPlayer.Character
+            local Hum = Char:FindFirstChildOfClass("Humanoid") or Char:FindFirstChildOfClass("AnimationController")
+
+            for i,v in next, Hum:GetPlayingAnimationTracks() do
+                v:AdjustSpeed(0)
+            end
+            
+            -- 禁用所有状态
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Running,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,false)
+            speaker.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
+            speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+        end
+
+        -- R6角色处理
+        if game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R6 then
+            local plr = game.Players.LocalPlayer
+            local torso = plr.Character.Torso
+            local deb = true
+            local ctrl = {f = 0, b = 0, l = 0, r = 0}
+            local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            local maxspeed = 50
+            local speed = 0
+
+            local bg = Instance.new("BodyGyro", torso)
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = torso.CFrame
+            local bv = Instance.new("BodyVelocity", torso)
+            bv.velocity = Vector3.new(0,0.1,0)
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            
+            if nowe == true then
+                plr.Character.Humanoid.PlatformStand = true
+            end
+            
+            while nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0 do
+                game:GetService("RunService").RenderStepped:Wait()
+
+                if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                    speed = speed+.5+(speed/maxspeed)
+                    if speed > maxspeed then
+                        speed = maxspeed
+                    end
+                elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+                    speed = speed-1
+                    if speed < 0 then
+                        speed = 0
+                    end
+                end
+                
+                if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+                    bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+                    lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+                elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
+                    bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+                else
+                    bv.velocity = Vector3.new(0,0,0)
+                end
+                
+                bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
+            end
+            
+            ctrl = {f = 0, b = 0, l = 0, r = 0}
+            lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            speed = 0
+            bg:Destroy()
+            bv:Destroy()
+            plr.Character.Humanoid.PlatformStand = false
+            game.Players.LocalPlayer.Character.Animate.Disabled = false
+            tpwalking = false
+        else
+            -- R15角色处理
+            local plr = game.Players.LocalPlayer
+            local UpperTorso = plr.Character.UpperTorso
+            local ctrl = {f = 0, b = 0, l = 0, r = 0}
+            local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            local maxspeed = 50
+            local speed = 0
+
+            local bg = Instance.new("BodyGyro", UpperTorso)
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = UpperTorso.CFrame
+            local bv = Instance.new("BodyVelocity", UpperTorso)
+            bv.velocity = Vector3.new(0,0.1,0)
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            
+            if nowe == true then
+                plr.Character.Humanoid.PlatformStand = true
+            end
+            
+            while nowe == true or game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0 do
+                wait()
+
+                if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                    speed = speed+.5+(speed/maxspeed)
+                    if speed > maxspeed then
+                        speed = maxspeed
+                    end
+                elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+                    speed = speed-1
+                    if speed < 0 then
+                        speed = 0
+                    end
+                end
+                
+                if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+                    bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+                    lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+                elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
+                    bv.velocity = ((game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - game.Workspace.CurrentCamera.CoordinateFrame.p))*speed
+                else
+                    bv.velocity = Vector3.new(0,0,0)
+                end
+
+                bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
+            end
+            
+            ctrl = {f = 0, b = 0, l = 0, r = 0}
+            lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            speed = 0
+            bg:Destroy()
+            bv:Destroy()
+            plr.Character.Humanoid.PlatformStand = false
+            game.Players.LocalPlayer.Character.Animate.Disabled = false
+            tpwalking = false
+        end
+    end)
+
+    -- 上升功能
+    local tis
+    up.MouseButton1Down:connect(function()
+        tis = up.MouseEnter:connect(function()
+            while tis do
+                wait()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,1,0)
+            end
+        end)
+    end)
+
+    up.MouseLeave:connect(function()
+        if tis then
+            tis:Disconnect()
+            tis = nil
+        end
+    end)
+
+    -- 下降功能
+    local dis
+    down.MouseButton1Down:connect(function()
+        dis = down.MouseEnter:connect(function()
+            while dis do
+                wait()
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,-1,0)
+            end
+        end)
+    end)
+
+    down.MouseLeave:connect(function()
+        if dis then
+            dis:Disconnect()
+            dis = nil
+        end
+    end)
+
+    -- 角色重生处理
+    game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
+        wait(0.7)
+        game.Players.LocalPlayer.Character.Humanoid.PlatformStand = false
+        game.Players.LocalPlayer.Character.Animate.Disabled = false
+    end)
+
+    -- 增加速度
+    plus.MouseButton1Down:connect(function()
+        speeds = speeds + 1
+        speed.Text = speeds
+        if nowe == true then
+            tpwalking = false
+            for i = 1, speeds do
+                spawn(function()
+                    local hb = game:GetService("RunService").Heartbeat	
+                    tpwalking = true
+                    local chr = game.Players.LocalPlayer.Character
+                    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                    while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                        if hum.MoveDirection.Magnitude > 0 then
+                            chr:TranslateBy(hum.MoveDirection)
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+
+    -- 减少速度
+    mine.MouseButton1Down:connect(function()
+        if speeds == 1 then
+            speed.Text = '最小速度'
+            wait(1)
+            speed.Text = speeds
+        else
+            speeds = speeds - 1
+            speed.Text = speeds
+            if nowe == true then
+                tpwalking = false
+                for i = 1, speeds do
+                    spawn(function()
+                        local hb = game:GetService("RunService").Heartbeat	
+                        tpwalking = true
+                        local chr = game.Players.LocalPlayer.Character
+                        local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                        while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                            if hum.MoveDirection.Magnitude > 0 then
+                                chr:TranslateBy(hum.MoveDirection)
+                            end
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+
+    -- 关闭按钮
+    closebutton.MouseButton1Click:Connect(function()
+        main:Destroy()
+    end)
+
+    -- 最小化按钮
+    mini.MouseButton1Click:Connect(function()
+        up.Visible = false
+        down.Visible = false
+        onof.Visible = false
+        plus.Visible = false
+        speed.Visible = false
+        mine.Visible = false
+        mini.Visible = false
+        mini2.Visible = true
+        main.Frame.BackgroundTransparency = 1
+        closebutton.Position =  UDim2.new(0, 0, -1, 57)
+    end)
+
+    -- 恢复按钮
+    mini2.MouseButton1Click:Connect(function()
+        up.Visible = true
+        down.Visible = true
+        onof.Visible = true
+        plus.Visible = true
+        speed.Visible = true
+        mine.Visible = true
+        mini.Visible = true
+        mini2.Visible = false
+        main.Frame.BackgroundTransparency = 0 
+        closebutton.Position =  UDim2.new(0, 0, -1, 27)
+    end)
+    
+    return main
+end
+
+-- 创建主窗口
+local Window = WindUI:CreateWindow({
+    Title = "小z通用脚本 正式版",
+    Icon = "rocket",
+    Author = "小z工作室",
+    Folder = "小z脚本配置",
+    Size = UDim2.fromOffset(750, 580),
+    Theme = "Dark",
+    User = {
+        Enabled = true,
+        Callback = function()
+            WindUI:Notify({
+                Title = "配置保存", 
+                Content = "用户配置已保存", 
+                Duration = 1.5,
+                Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+            })
+        end
+    },
+    SideBarWidth = 250,
+    ScrollBarEnabled = true
+})
+
+Window:Tag({
+    Title = "正式版 v2.8迁移",
+    Color = Color3.fromHex("#FF6B35")
+})
+
+-- 公告标签页
+local AnnouncementTab = Window:Tab({
+    Title = "公告",
+    Icon = "megaphone",
+    Locked = false,
+    OnCreate = function()
+        WindUI:Notify({
+            Title = "脚本加载", 
+            Content = "小z通用脚本正式版已启动", 
+            Duration = 2,
+            Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+        })
+    end
+})
+
+-- 创建渐变标题
+local gradientText = '<font color="#FF8C69">小</font><font color="#FF7A5A">z</font><font color="#FF694B">通</font><font color="#FF573C">用</font><font color="#FF462D">脚</font><font color="#FF351E">本</font> <font color="#FFD700">正式版</font>'
+
+AnnouncementTab:Paragraph({
+    Title = gradientText,
+    Image = "rbxassetid://84648939157347", -- 使用指定的图片ID
+    ImageSize = 24,
+    Color = "Grey",
+    Buttons = {
+        {
+            Title = "复制信息",
+            Icon = "copy",
+            Variant = "Secondary",
+            Callback = function()
+                local scriptText = "小z通用脚本 正式版 - 基于小z飞车控制v2.8开发"
+                setclipboard(scriptText)
+                WindUI:Notify({
+                    Title = "已复制！",
+                    Content = "脚本信息已复制到剪贴板",
+                    Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                    Duration = 2
+                })
+            end
+        },
+        {
+            Title = "隐藏UI",
+            Icon = "eye-off",
+            Variant = "Tertiary",
+            Callback = function()
+                Window:Toggle()
+                WindUI:Notify({
+                    Title = "UI状态",
+                    Content = "UI已隐藏/显示",
+                    Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                    Duration = 1.5
+                })
+            end
+        }
+    }
+})
+
+local AnnouncementSection = AnnouncementTab:Section({ 
+    Title = "欢迎使用小z通用脚本",
+    TextXAlignment = "Left",
+    TextSize = 16
+})
+
+-- 公告标签页内容
+AnnouncementTab:Input({
+    Title = "脚本说明",
+    Desc = "功能介绍",
+    Value = "小z通用脚本正式版包含以下主要功能：\n\n1. 移动控制：调节走路速度、移动速度、跳跃高度\n2. 玩家传送：传送到其他玩家、玩家头顶、基地、高空\n3. 小z飞行：小z飞行脚本 V3（独立UI）\n4. 高级功能：穿墙模式、无限跳跃、夜视模式、防坠落\n5. 脚本状态：实时监控脚本运行状态",
+    Type = "Textarea",
+    Placeholder = "脚本功能介绍...",
+    Callback = function(input) 
+        -- 只读内容
+    end
+})
+
+-- 移动控制标签页
+local MovementTab = Window:Tab({
+    Title = "移动控制",
+    Icon = "move",
+    Locked = false,
+    OnCreate = function()
+        WindUI:Notify({
+            Title = "移动控制", 
+            Content = "移动控制功能已加载", 
+            Duration = 1,
+            Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+        })
+    end
+})
+
+-- 走路速度控制
+local WalkSpeedSlider = MovementTab:Slider({
+    Title = "走路速度",
+    Desc = "控制角色行走速度 (1-200)",
+    Step = 1,
+    Value = {
+        Min = 1,
+        Max = 200,
+        Default = 16,
+    },
+    Callback = function(value)
+        walkSpeed = value
+        humanoid.WalkSpeed = value
+        WindUI:Notify({
+            Title = "移动设置",
+            Content = "走路速度设置为: " .. value,
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1
+        })
+    end
+})
+
+-- 移动速度控制
+local MoveSpeedSlider = MovementTab:Slider({
+    Title = "移动速度",
+    Desc = "控制角色移动速度 (1-500)",
+    Step = 1,
+    Value = {
+        Min = 1,
+        Max = 500,
+        Default = 50,
+    },
+    Callback = function(value)
+        moveSpeed = value
+        WindUI:Notify({
+            Title = "移动设置",
+            Content = "移动速度设置为: " .. value,
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1
+        })
+    end
+})
+
+-- 跳跃高度控制
+local JumpHeightSlider = MovementTab:Slider({
+    Title = "跳跃高度",
+    Desc = "控制角色跳跃高度 (1-200)",
+    Step = 1,
+    Value = {
+        Min = 1,
+        Max = 200,
+        Default = 50,
+    },
+    Callback = function(value)
+        jumpPower = value
+        humanoid.JumpHeight = value
+        WindUI:Notify({
+            Title = "移动设置",
+            Content = "跳跃高度设置为: " .. value,
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1
+        })
+    end
+})
+
+-- 垂直移动控制
+local MovementSection = MovementTab:Section({ 
+    Title = "垂直移动控制",
+    TextXAlignment = "Left",
+    TextSize = 16,
+})
+
+local UpButton = MovementTab:Button({
+    Title = "上升 ↑",
+    Icon = "chevron-up",
+    Locked = false,
+    Callback = function()
+        if character:FindFirstChild("HumanoidRootPart") then
+            local currentCFrame = character.HumanoidRootPart.CFrame
+            character.HumanoidRootPart.CFrame = currentCFrame + Vector3.new(0, 5, 0)
+            WindUI:Notify({
+                Title = "垂直移动",
+                Content = "已向上移动5个单位",
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 1
+            })
+        end
+    end
+})
+
+local DownButton = MovementTab:Button({
+    Title = "下降 ↓",
+    Icon = "chevron-down",
+    Locked = false,
+    Callback = function()
+        if character:FindFirstChild("HumanoidRootPart") then
+            local currentCFrame = character.HumanoidRootPart.CFrame
+            character.HumanoidRootPart.CFrame = currentCFrame - Vector3.new(0, 5, 0)
+            WindUI:Notify({
+                Title = "垂直移动",
+                Content = "已向下移动5个单位",
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 1
+            })
+        end
+    end
+})
+
+-- 玩家传送标签页
+local TeleportTab = Window:Tab({
+    Title = "玩家传送",
+    Icon = "users",
+    Locked = false,
+    OnCreate = function()
+        WindUI:Notify({
+            Title = "传送系统", 
+            Content = "玩家传送功能已加载", 
+            Duration = 1,
+            Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+        })
+    end
+})
+
+-- 获取所有玩家
+local function getPlayers()
+    local playersList = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            table.insert(playersList, player.Name)
+        end
+    end
+    if #playersList == 0 then
+        table.insert(playersList, "无在线玩家")
+    end
+    return playersList
+end
+
+-- 玩家选择下拉框
+local PlayerDropdown = TeleportTab:Dropdown({
+    Title = "选择传送目标",
+    Desc = "选择要传送到的玩家",
+    Values = getPlayers(),
+    Value = getPlayers()[1],
+    Callback = function(selectedPlayer) 
+        if selectedPlayer ~= "无在线玩家" then
+            _G.selectedTeleportTarget = selectedPlayer
+            WindUI:Notify({
+                Title = "目标选择",
+                Content = "已选择玩家: " .. selectedPlayer,
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 1
+            })
+        end
+    end
+})
+
+-- 刷新玩家列表按钮
+TeleportTab:Button({
+    Title = "刷新玩家列表",
+    Icon = "refresh-cw",
+    Locked = false,
+    Callback = function()
+        PlayerDropdown:SetValues(getPlayers())
+        WindUI:Notify({
+            Title = "玩家列表",
+            Content = "玩家列表已刷新，当前在线: " .. (#getPlayers() - 1) .. "人",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1.5
+        })
+    end
+})
+
+-- 传送功能
+local TeleportSection = TeleportTab:Section({ 
+    Title = "传送功能",
+    TextXAlignment = "Left",
+    TextSize = 16,
+})
+
+-- 传送到玩家
+TeleportTab:Button({
+    Title = "传送到玩家",
+    Icon = "navigation",
+    Locked = false,
+    Callback = function()
+        local targetPlayer = _G.selectedTeleportTarget
+        if targetPlayer and targetPlayer ~= "无在线玩家" then
+            local target = Players:FindFirstChild(targetPlayer)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                character:SetPrimaryPartCFrame(target.Character.HumanoidRootPart.CFrame)
+                WindUI:Notify({
+                    Title = "传送成功",
+                    Content = "已传送到: " .. targetPlayer,
+                    Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                    Duration = 2
+                })
+            else
+                WindUI:Notify({
+                    Title = "传送失败",
+                    Content = "目标玩家不在线或无角色",
+                    Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                    Duration = 2
+                })
+            end
+        end
+    end
+})
+
+-- 传送到玩家头顶
+TeleportTab:Button({
+    Title = "传送到玩家头顶",
+    Icon = "user-plus",
+    Locked = false,
+    Callback = function()
+        local targetPlayer = _G.selectedTeleportTarget
+        if targetPlayer and targetPlayer ~= "无在线玩家" then
+            local target = Players:FindFirstChild(targetPlayer)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                -- 获取目标玩家的位置
+                local targetPosition = target.Character.HumanoidRootPart.Position
+                -- 在目标玩家头顶上方10个单位的位置
+                local headPosition = targetPosition + Vector3.new(0, 10, 0)
+                
+                -- 传送到目标玩家头顶
+                character:SetPrimaryPartCFrame(CFrame.new(headPosition))
+                
+                WindUI:Notify({
+                    Title = "传送成功",
+                    Content = "已传送到 " .. targetPlayer .. " 的头顶",
+                    Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                    Duration = 2
+                })
+            else
+                WindUI:Notify({
+                    Title = "传送失败",
+                    Content = "目标玩家不在线或无角色",
+                    Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                    Duration = 2
+                })
+            end
+        end
+    end
+})
+
+-- 传送到基地
+TeleportTab:Button({
+    Title = "传送到基地",
+    Icon = "home",
+    Locked = false,
+    Callback = function()
+        -- 查找基地位置
+        local spawn = game.Workspace:FindFirstChild("SpawnLocation")
+        if spawn then
+            character:SetPrimaryPartCFrame(spawn.CFrame)
+            WindUI:Notify({
+                Title = "传送成功",
+                Content = "已传送到基地",
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 2
+            })
+        else
+            -- 如果没有找到基地，传送到地图中心
+            local center = Vector3.new(0, 100, 0)
+            character:SetPrimaryPartCFrame(CFrame.new(center))
+            WindUI:Notify({
+                Title = "传送成功",
+                Content = "已传送到地图中心",
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- 传送到高空
+TeleportTab:Button({
+    Title = "传送到高空",
+    Icon = "cloud",
+    Locked = false,
+    Callback = function()
+        if character:FindFirstChild("HumanoidRootPart") then
+            local currentCFrame = character.HumanoidRootPart.CFrame
+            character.HumanoidRootPart.CFrame = currentCFrame + Vector3.new(0, 500, 0)
+            WindUI:Notify({
+                Title = "高空传送",
+                Content = "已传送到500单位高空",
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- 高级功能标签页
+local AdvancedTab = Window:Tab({
+    Title = "高级功能",
+    Icon = "zap",
+    Locked = false,
+    OnCreate = function()
+        WindUI:Notify({
+            Title = "高级功能", 
+            Content = "高级功能已加载", 
+            Duration = 1,
+            Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+        })
+    end
+})
+
+-- 小z飞行脚本按钮
+local xzFlightEnabled = false
+local xzFlightUI
+
+local XzFlightButton = AdvancedTab:Button({
+    Title = "开启小z飞行脚本",
+    Icon = "wind",
+    Locked = false,
+    Callback = function()
+        if not xzFlightEnabled then
+            xzFlightUI = createXzFlightScript()
+            xzFlightEnabled = true
+            WindUI:Notify({
+                Title = "小z飞行脚本",
+                Content = "小z飞行脚本 V3 已启动\n独立UI已显示在屏幕上",
+                Icon = "rbxassetid://84648939157347",
+                Duration = 3
+            })
+        else
+            if xzFlightUI then
+                xzFlightUI:Destroy()
+                xzFlightUI = nil
+            end
+            xzFlightEnabled = false
+            WindUI:Notify({
+                Title = "小z飞行脚本",
+                Content = "小z飞行脚本已关闭",
+                Icon = "rbxassetid://84648939157347",
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- 穿墙模式 (NoClip)
+local NoClipToggle = AdvancedTab:Toggle({
+    Title = "穿墙模式",
+    Desc = "按N键快速切换穿墙模式",
+    Type = "Checkbox",
+    Default = false,
+    Callback = function(state) 
+        noClipEnabled = state
+        if character then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = not state
+                end
+            end
+        end
+        WindUI:Notify({
+            Title = "穿墙模式",
+            Content = state and "穿墙模式已启用" or "穿墙模式已禁用",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 2
+        })
+    end
+})
+
+-- 无限跳跃
+local InfiniteJumpToggle = AdvancedTab:Toggle({
+    Title = "无限跳跃",
+    Desc = "在空中可以无限次跳跃",
+    Type = "Checkbox",
+    Default = false,
+    Callback = function(state) 
+        _G.infiniteJump = state
+        WindUI:Notify({
+            Title = "跳跃设置",
+            Content = state and "无限跳跃已启用" or "无限跳跃已禁用",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 2
+        })
+    end
+})
+
+-- 无限跳跃连接
+local jumpConnection
+jumpConnection = UserInputService.JumpRequest:Connect(function()
+    if _G.infiniteJump then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- 夜视模式
+local NightVisionToggle = AdvancedTab:Toggle({
+    Title = "夜视模式",
+    Desc = "在黑暗环境中增强视野",
+    Type = "Checkbox",
+    Default = false,
+    Callback = function(state) 
+        if state then
+            local lighting = game:GetService("Lighting")
+            lighting.Brightness = 2
+            lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        else
+            local lighting = game:GetService("Lighting")
+            lighting.Brightness = 1
+            lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+        end
+        WindUI:Notify({
+            Title = "视觉效果",
+            Content = state and "夜视模式已启用" or "夜视模式已禁用",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 2
+        })
+    end
+})
+
+-- 防坠落
+local AntiFallToggle = AdvancedTab:Toggle({
+    Title = "防坠落",
+    Desc = "防止从高处坠落受伤",
+    Type = "Checkbox",
+    Default = false,
+    Callback = function(state) 
+        if state then
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        else
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+        end
+        WindUI:Notify({
+            Title = "安全设置",
+            Content = state and "防坠落已启用" or "防坠落已禁用",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 2
+        })
+    end
+})
+
+-- 脚本状态标签页
+local StatusTab = Window:Tab({
+    Title = "脚本状态",
+    Icon = "activity",
+    Locked = false,
+    OnCreate = function()
+        WindUI:Notify({
+            Title = "状态监控", 
+            Content = "脚本状态监控已启动", 
+            Duration = 1,
+            Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+        })
+    end
+})
+
+-- 创建状态显示函数
+local function updateStatus()
+    local xzFlightStatus = xzFlightEnabled and "✅ 启用" or "❌ 禁用"
+    local noClipStatus = noClipEnabled and "✅" or "❌"
+    local infiniteJumpStatus = _G.infiniteJump and "✅" or "❌"
+    local nightVisionStatus = NightVisionToggle:GetState() and "✅" or "❌"
+    local antiFallStatus = AntiFallToggle:GetState() and "✅" or "❌"
+    
+    local statusText = string.format([[
+╔═══════════════════════════════════╗
+║   小z通用脚本 正式版 状态报告    ║
+╠═══════════════════════════════════╣
+║ 📊 基础状态：
+║   小z飞行: %s
+║   走路速度: %d
+║   移动速度: %d
+║   跳跃高度: %d
+╠═══════════════════════════════════╣
+║ ⚡ 高级功能：
+║   穿墙模式: %s
+║   无限跳跃: %s
+║   夜视模式: %s
+║   防坠落: %s
+╠═══════════════════════════════════╣
+║ 👤 玩家信息：
+║   玩家名称: %s
+║   角色生命: %.1f/%.1f
+║   位置坐标: %.1f, %.1f, %.1f
+╚═══════════════════════════════════╝
+]],
+        xzFlightStatus,
+        walkSpeed,
+        moveSpeed,
+        jumpPower,
+        noClipStatus,
+        infiniteJumpStatus,
+        nightVisionStatus,
+        antiFallStatus,
+        player.Name,
+        humanoid.Health,
+        humanoid.MaxHealth,
+        character:GetPrimaryPartCFrame().X,
+        character:GetPrimaryPartCFrame().Y,
+        character:GetPrimaryPartCFrame().Z
+    )
+    return statusText
+end
+
+-- 状态刷新按钮
+StatusTab:Button({
+    Title = "刷新状态",
+    Icon = "refresh-cw",
+    Locked = false,
+    Callback = function()
+        StatusInput:SetValue(updateStatus())
+        WindUI:Notify({
+            Title = "状态更新",
+            Content = "脚本状态已刷新",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1
+        })
+    end
+})
+
+-- 状态文本框
+local StatusInput = StatusTab:Input({
+    Title = "当前状态",
+    Desc = "实时监控脚本各项功能状态",
+    Value = updateStatus(),
+    Type = "Textarea",
+    Placeholder = "状态信息加载中...",
+    Callback = function(input) 
+        print("状态信息已查看")
+    end
+})
+
+-- 自动更新状态
+spawn(function()
+    while true do
+        wait(3)
+        if StatusInput then
+            StatusInput:SetValue(updateStatus())
+        end
+    end
+end)
+
+-- UI快捷键
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.RightControl then
+            Window:Toggle()
+            WindUI:Notify({
+                Title = "UI控制",
+                Content = "UI已" .. (Window.Visible and "显示" or "隐藏"),
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 1
+            })
+        elseif input.KeyCode == Enum.KeyCode.N then
+            NoClipToggle:Toggle()
+        end
+    end
+end)
+
+-- 脚本加载完成提示
+wait(1)
+WindUI:Notify({
+    Title = "🎉 小z通用脚本 正式版",
+    Content = "脚本加载完成！\n按RightControl隐藏/显示UI\n按N键切换穿墙模式\n点击高级功能开启小z飞行脚本",
+    Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+    Duration = 6
+})
+
+-- 角色重生事件
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    
+    -- 重新应用设置
+    humanoid.WalkSpeed = walkSpeed
+    humanoid.JumpHeight = jumpPower
+    
+    wait(1)
+    WindUI:Notify({
+        Title = "角色重生",
+        Content = "角色已重生，设置已重新应用",
+        Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+        Duration = 2
+    })
+end)
+
+-- 脚本卸载时清理
+game:GetService("CoreGui").ChildRemoved:Connect(function(child)
+    if child.Name == "WindUI" then
+        -- 清理小z飞行
+        if xzFlightEnabled and xzFlightUI then
+            xzFlightUI:Destroy()
+            xzFlightUI = nil
+        end
+        -- 清理无限跳跃
+        if jumpConnection then
+            jumpConnection:Disconnect()
+        end
+    end
+end)
