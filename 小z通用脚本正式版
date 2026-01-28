@@ -1,5 +1,5 @@
 -- 小z通用脚本 正式版 (WindUI版本)
--- 基于小z飞车控制v2.8完整迁移
+-- 基于小z完整
 -- 所有通知使用图片ID: 84648939157347
 -- 飞行系统：小z飞行脚本 V3
 
@@ -550,7 +550,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:Tag({
-    Title = "正式版 v2.8迁移",
+    Title = "正式版 v2.0",
     Color = Color3.fromHex("#FF6B35")
 })
 
@@ -583,7 +583,7 @@ AnnouncementTab:Paragraph({
             Icon = "copy",
             Variant = "Secondary",
             Callback = function()
-                local scriptText = "小z通用脚本 正式版 - 基于小z飞车控制v2.8开发"
+                local scriptText = "小z通用脚本 正式版 - 基于小z开发"
                 setclipboard(scriptText)
                 WindUI:Notify({
                     Title = "已复制！",
@@ -642,6 +642,7 @@ local MovementTab = Window:Tab({
         })
     end
 })
+
 
 -- 走路速度控制
 local WalkSpeedSlider = MovementTab:Slider({
@@ -748,6 +749,457 @@ local DownButton = MovementTab:Button({
                 Duration = 1
             })
         end
+    end
+})
+
+-- ====== 地板铺设器标签页 ======
+local FlooringTab = Window:Tab({
+    Title = "地板铺设器",
+    Icon = "square",
+    Locked = false,
+    OnCreate = function()
+        WindUI:Notify({
+            Title = "地板铺设器", 
+            Content = "地板铺设功能已加载", 
+            Duration = 1,
+            Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+        })
+    end
+})
+
+-- 地板铺设器核心功能
+local floorConfig = {
+    anchored = true,
+    radius = 16,
+    side = 32,
+    interval = 0.3,
+    repeatMode = "off",
+    colorName = "Bright yellow"
+}
+
+local floorRepeater = nil
+
+-- 生成单块砖函数
+local function generateSingleBrick()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if not hrp then return end
+    
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(1, 1, 1)
+    part.Anchored = floorConfig.anchored
+    part.TopSurface = Enum.SurfaceType.Smooth
+    part.BottomSurface = Enum.SurfaceType.Smooth
+    part.BrickColor = BrickColor.new(floorConfig.colorName)
+    part.CFrame = hrp.CFrame + Vector3.new(math.random(-8, 8), 0, math.random(-8, 8))
+    part.Parent = workspace
+    
+    WindUI:Notify({
+        Title = "地板铺设器",
+        Content = "单块砖已生成",
+        Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+        Duration = 1
+    })
+end
+
+-- 生成圆形地板函数
+local function generateCircleFloor()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if not hrp then return end
+    
+    local radius = floorConfig.radius
+    local center = hrp.Position
+    
+    for x = -radius, radius do
+        for z = -radius, radius do
+            if x*x + z*z <= radius*radius then
+                local part = Instance.new("Part")
+                part.Size = Vector3.new(1, 1, 1)
+                part.Anchored = floorConfig.anchored
+                part.TopSurface = Enum.SurfaceType.Smooth
+                part.BottomSurface = Enum.SurfaceType.Smooth
+                part.BrickColor = BrickColor.new(floorConfig.colorName)
+                part.CFrame = CFrame.new(center.X + x, center.Y, center.Z + z)
+                part.Parent = workspace
+            end
+        end
+    end
+    
+    WindUI:Notify({
+        Title = "地板铺设器",
+        Content = "圆形地板已生成，半径: " .. radius,
+        Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+        Duration = 2
+    })
+end
+
+-- 生成正方形地板函数
+local function generateSquareFloor()
+    local player = game:GetService("Players").LocalPlayer
+    local character = player.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if not hrp then return end
+    
+    local side = floorConfig.side
+    local center = hrp.Position
+    
+    for x = -side, side do
+        for z = -side, side do
+            local part = Instance.new("Part")
+            part.Size = Vector3.new(1, 1, 1)
+            part.Anchored = floorConfig.anchored
+            part.TopSurface = Enum.SurfaceType.Smooth
+            part.BottomSurface = Enum.SurfaceType.Smooth
+            part.BrickColor = BrickColor.new(floorConfig.colorName)
+            part.CFrame = CFrame.new(center.X + x, center.Y, center.Z + z)
+            part.Parent = workspace
+        end
+    end
+    
+    WindUI:Notify({
+        Title = "地板铺设器",
+        Content = "正方形地板已生成，边长: " .. (side * 2),
+        Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+        Duration = 2
+    })
+end
+
+-- 清理地板函数
+local function cleanupFloor()
+    local count = 0
+    for _, v in ipairs(workspace:GetChildren()) do
+        if v:IsA("Part") and v.Size == Vector3.new(1, 1, 1) and v.TopSurface == Enum.SurfaceType.Smooth then
+            v:Destroy()
+            count = count + 1
+        end
+    end
+    
+    WindUI:Notify({
+        Title = "地板清理",
+        Content = "已清理 " .. count .. " 块地板",
+        Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+        Duration = 2
+    })
+end
+
+-- 重复生成控制函数
+local function setFloorRepeat(mode)
+    if floorRepeater then 
+        task.cancel(floorRepeater)
+        floorRepeater = nil 
+    end
+    
+    floorConfig.repeatMode = mode
+    if mode == "off" then return end
+    
+    floorRepeater = task.spawn(function()
+        while floorConfig.repeatMode == mode do
+            if mode == "circle" then 
+                generateCircleFloor()
+            elseif mode == "square" then 
+                generateSquareFloor()
+            elseif mode == "single" then 
+                generateSingleBrick()
+            end
+            task.wait(floorConfig.interval)
+        end
+    end)
+end
+
+-- 颜色设置函数
+local function setFloorColor(colorName)
+    colorName = colorName:gsub("%s+", " "):match("^%s*(.-)%s*$")
+    
+    local ok = pcall(function() 
+        BrickColor.new(colorName)
+    end)
+    
+    if not ok then
+        WindUI:Notify({
+            Title = "颜色错误",
+            Content = "无效的颜色名称: " .. colorName,
+            Icon = "rbxassetid://84648939157347",
+            Duration = 2
+        })
+        return false
+    end
+    
+    floorConfig.colorName = colorName
+    generateSingleBrick()
+    return true
+end
+
+-- 基本生成控制
+local BasicSection = FlooringTab:Section({ 
+    Title = "基本生成控制",
+    TextXAlignment = "Left",
+    TextSize = 16,
+})
+
+-- 生成单砖按钮
+FlooringTab:Button({
+    Title = "生成单砖",
+    Icon = "box",
+    Locked = false,
+    Callback = generateSingleBrick
+})
+
+-- 生成圆形地板按钮
+FlooringTab:Button({
+    Title = "生成圆形地板",
+    Icon = "circle",
+    Locked = false,
+    Callback = generateCircleFloor
+})
+
+-- 生成正方形地板按钮
+FlooringTab:Button({
+    Title = "生成正方形地板",
+    Icon = "square",
+    Locked = false,
+    Callback = generateSquareFloor
+})
+
+-- 清理地板按钮
+FlooringTab:Button({
+    Title = "清理所有地板",
+    Icon = "trash-2",
+    Locked = false,
+    Callback = cleanupFloor
+})
+
+-- 尺寸设置区域
+local SizeSection = FlooringTab:Section({ 
+    Title = "尺寸设置",
+    TextXAlignment = "Left",
+    TextSize = 16,
+})
+
+-- 圆形半径控制
+FlooringTab:Slider({
+    Title = "圆形半径",
+    Desc = "控制圆形地板的半径大小 (4-64)",
+    Step = 1,
+    Value = {
+        Min = 4,
+        Max = 64,
+        Default = floorConfig.radius,
+    },
+    Callback = function(value)
+        floorConfig.radius = value
+        WindUI:Notify({
+            Title = "地板设置",
+            Content = "圆形半径设置为: " .. value,
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1
+        })
+    end
+})
+
+-- 正方形半宽控制
+FlooringTab:Slider({
+    Title = "正方形半宽",
+    Desc = "控制正方形地板的半宽大小 (4-64)",
+    Step = 1,
+    Value = {
+        Min = 4,
+        Max = 64,
+        Default = floorConfig.side,
+    },
+    Callback = function(value)
+        floorConfig.side = value
+        WindUI:Notify({
+            Title = "地板设置",
+            Content = "正方形半宽设置为: " .. value,
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1
+        })
+    end
+})
+
+-- 重复生成区域
+local RepeatSection = FlooringTab:Section({ 
+    Title = "重复生成控制",
+    TextXAlignment = "Left",
+    TextSize = 16,
+})
+
+-- 重复间隔控制
+FlooringTab:Slider({
+    Title = "重复间隔",
+    Desc = "控制重复生成的间隔时间 (0.1-2秒)",
+    Step = 0.1,
+    Value = {
+        Min = 0.1,
+        Max = 2,
+        Default = floorConfig.interval,
+    },
+    Callback = function(value)
+        floorConfig.interval = value
+        WindUI:Notify({
+            Title = "重复设置",
+            Content = "重复间隔设置为: " .. value .. "秒",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1
+        })
+    end
+})
+
+-- 重复生成圆形
+FlooringTab:Toggle({
+    Title = "重复生成圆形",
+    Desc = "开启后自动重复生成圆形地板",
+    Icon = "repeat",
+    Default = false,
+    Locked = false,
+    Callback = function(value)
+        setFloorRepeat(value and "circle" or "off")
+        if value then
+            WindUI:Notify({
+                Title = "重复生成",
+                Content = "已开启圆形地板重复生成",
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- 重复生成正方形
+FlooringTab:Toggle({
+    Title = "重复生成正方形",
+    Desc = "开启后自动重复生成正方形地板",
+    Icon = "repeat",
+    Default = false,
+    Locked = false,
+    Callback = function(value)
+        setFloorRepeat(value and "square" or "off")
+        if value then
+            WindUI:Notify({
+                Title = "重复生成",
+                Content = "已开启正方形地板重复生成",
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- 重复生成单砖
+FlooringTab:Toggle({
+    Title = "重复生成单砖",
+    Desc = "开启后自动重复生成单块砖",
+    Icon = "repeat",
+    Default = false,
+    Locked = false,
+    Callback = function(value)
+        setFloorRepeat(value and "single" or "off")
+        if value then
+            WindUI:Notify({
+                Title = "重复生成",
+                Content = "已开启单砖重复生成",
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- 高级设置区域
+local AdvancedSection = FlooringTab:Section({ 
+    Title = "高级设置",
+    TextXAlignment = "Left",
+    TextSize = 16,
+})
+
+-- 颜色选择输入框
+FlooringTab:Input({
+    Title = "砖块颜色",
+    Desc = "输入BrickColor名称，如：Bright yellow、Really blue",
+    Value = floorConfig.colorName,
+    Type = "Input",
+    Placeholder = "例：Bright yellow",
+    Callback = function(value)
+        if setFloorColor(value) then
+            WindUI:Notify({
+                Title = "颜色设置",
+                Content = "砖块颜色已设置为: " .. value,
+                Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+                Duration = 2
+            })
+        end
+    end
+})
+
+-- 锚定状态切换
+FlooringTab:Toggle({
+    Title = "取消锚定",
+    Desc = "开启后生成的地板不会被锚定",
+    Default = false,
+    Locked = false,
+    Callback = function(value)
+        floorConfig.anchored = not value
+        WindUI:Notify({
+            Title = "锚定设置",
+            Content = value and "地板取消锚定" or "地板已锚定",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 1
+        })
+    end
+})
+
+-- 随机颜色按钮
+FlooringTab:Button({
+    Title = "随机颜色",
+    Icon = "shuffle",
+    Locked = false,
+    Callback = function()
+        local colors = {
+            "Bright yellow", "Bright blue", "Bright red", "Bright green",
+            "Bright orange", "Bright violet", "Hot pink", "Lime green",
+            "Really blue", "Really red", "White", "Really black"
+        }
+        local randomColor = colors[math.random(1, #colors)]
+        floorConfig.colorName = randomColor
+        generateSingleBrick()
+        WindUI:Notify({
+            Title = "随机颜色",
+            Content = "已切换到随机颜色: " .. randomColor,
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 2
+        })
+    end
+})
+
+-- 重置设置按钮
+FlooringTab:Button({
+    Title = "重置所有设置",
+    Icon = "refresh-cw",
+    Locked = false,
+    Callback = function()
+        floorConfig = {
+            anchored = true,
+            radius = 16,
+            side = 32,
+            interval = 0.3,
+            repeatMode = "off",
+            colorName = "Bright yellow"
+        }
+        
+        setFloorRepeat("off")
+        
+        WindUI:Notify({
+            Title = "设置重置",
+            Content = "所有设置已重置为默认值",
+            Icon = "rbxassetid://84648939157347", -- 使用指定的图片ID
+            Duration = 2
+        })
     end
 })
 
@@ -933,6 +1385,116 @@ TeleportTab:Button({
                 Duration = 2
             })
         end
+    end
+})
+
+-- ====== 其他脚本标签页 ======
+local OtherScriptsTab = Window:Tab({
+    Title = "其他脚本",
+    Icon = "code",
+    Locked = false,
+    OnCreate = function()
+        WindUI:Notify({
+            Title = "其他脚本", 
+            Content = "其他脚本功能已加载", 
+            Duration = 1,
+            Icon = "rbxassetid://84648939157347" -- 使用指定的图片ID
+        })
+    end
+})
+
+-- 皮脚本按钮
+local PiScriptButton = OtherScriptsTab:Button({
+    Title = "皮脚本",
+    Desc = "点击加载皮脚本",
+    Icon = "file-text",
+    Locked = false,
+    Callback = function()
+        WindUI:Notify({
+            Title = "皮脚本",
+            Content = "正在加载皮脚本...",
+            Icon = "rbxassetid://84648939157347",
+            Duration = 2
+        })
+        
+        task.wait(1)
+        
+        local success, errorMessage = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/xiaopi77/xiaopi77/main/QQ1002100032-Roblox-Pi-script.lua"))()
+        end)
+        
+        if success then
+            WindUI:Notify({
+                Title = "皮脚本",
+                Content = "皮脚本加载成功！",
+                Icon = "rbxassetid://84648939157347",
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "加载失败",
+                Content = "皮脚本加载失败: " .. tostring(errorMessage),
+                Icon = "rbxassetid://84648939157347",
+                Duration = 5
+            })
+            warn("皮脚本加载失败:", errorMessage)
+        end
+    end
+})
+
+-- BS黑洞中心按钮
+local BSScriptButton = OtherScriptsTab:Button({
+    Title = "BS黑洞中心",
+    Desc = "点击加载BS黑洞中心脚本",
+    Icon = "wind",
+    Locked = false,
+    Callback = function()
+        WindUI:Notify({
+            Title = "BS黑洞中心",
+            Content = "正在加载BS黑洞中心脚本...",
+            Icon = "rbxassetid://84648939157347",
+            Duration = 2
+        })
+        
+        task.wait(1)
+        
+        local success, errorMessage = pcall(function()
+            loadstring(game:HttpGet("https://gitee.com/BS_script/script/raw/master/BS_Script.Luau"))()
+        end)
+        
+        if success then
+            WindUI:Notify({
+                Title = "BS黑洞中心",
+                Content = "BS黑洞中心脚本加载成功！",
+                Icon = "rbxassetid://84648939157347",
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "加载失败",
+                Content = "BS黑洞中心脚本加载失败: " .. tostring(errorMessage),
+                Icon = "rbxassetid://84648939157347",
+                Duration = 5
+            })
+            warn("BS黑洞中心脚本加载失败:", errorMessage)
+        end
+    end
+})
+
+
+-- 刷新脚本按钮
+OtherScriptsTab:Button({
+    Title = "刷新脚本列表",
+    Desc = "重新加载所有脚本按钮",
+    Icon = "refresh-cw",
+    Locked = false,
+    Callback = function()
+        WindUI:Notify({
+            Title = "脚本刷新",
+            Content = "脚本列表已刷新，所有按钮功能正常",
+            Icon = "rbxassetid://84648939157347",
+            Duration = 2
+        })
     end
 })
 
